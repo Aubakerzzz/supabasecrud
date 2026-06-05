@@ -1,0 +1,58 @@
+services:
+  # MSSQL Database
+  mssql:
+    build: ./database
+    container_name: mssql_db
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "${SA_PASSWORD:-YourStrong!Passw0rd}"
+      MSSQL_PID: "Express"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql_data:/var/opt/mssql
+    networks:
+      - app_network
+    healthcheck:
+      test: /opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P "${SA_PASSWORD:-YourStrong!Passw0rd}" -Q "SELECT 1" || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # Supabase Edge Functions API (WORKING!)
+  supabase-api:
+    build: ./supabase
+    container_name: supabase_api
+    environment:
+      MSSQL_HOST: mssql
+      MSSQL_USER: sa
+      MSSQL_PASSWORD: "${SA_PASSWORD:-YourStrong!Passw0rd}"
+      MSSQL_DATABASE: ProductDB
+      MSSQL_PORT: 1433
+    ports:
+      - "9999:54321"
+    depends_on:
+      mssql:
+        condition: service_healthy
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  # Frontend
+  frontend:
+    build: ./frontend
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - supabase-api
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
+
+volumes:
+  mssql_data:

@@ -1,0 +1,13 @@
+[general]
+project_id = "product-crud-app"
+
+[functions]
+enabled = true
+
+[functions.products]
+name = "products"
+file = "./functions/products/index.ts"
+verify_jwt = false  # For development, set to true in production
+
+[api]
+port = 54321
